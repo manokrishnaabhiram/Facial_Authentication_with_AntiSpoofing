@@ -72,7 +72,7 @@ pip install opencv-python dlib numpy imutils pickle-mixin faiss-cpu streamlit cm
 
 📌 **Watch these video tutorials for required installations:**
 - **Visual Studio (Required for Dlib setup):** [YouTube Installation Guide](https://youtu.be/oTv7HB6CRpQ?si=8mRwcIC6KwU3SrR3)
-- **CMake Installation Guide:** [YouTube CMake Setup](https://youtu.be/NXYzA9F1G3o)
+- **CMake Installation Guide:** [YouTube CMake Setup](https://youtu.be/8_X5Iq9niDE?si=Tytq4FnzvnA_WDO7)
 
 #### **2. Run Face Embedding Extraction**
 ```bash
