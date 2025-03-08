@@ -42,6 +42,7 @@ This script loads the stored embeddings and performs real-time face recognition 
 - Pickle
 - FAISS (for fast similarity search)
 - OS, Sys, Time, Threading
+- CMake (Required for `facial_recognition` library)
 
 #### **How It Works**
 1. Loads stored embeddings from `face_embeddings.pkl`.
@@ -66,17 +67,21 @@ This script loads the stored embeddings and performs real-time face recognition 
 
 #### **1. Install Dependencies**
 ```bash
-pip install opencv-python dlib numpy imutils pickle-mixin faiss-cpu streamlit
+pip install opencv-python dlib numpy imutils pickle-mixin faiss-cpu streamlit cmake
 ```
+
+📌 **Watch these video tutorials for required installations:**
+- **Visual Studio (Required for Dlib setup):** [YouTube Installation Guide](https://youtu.be/oTv7HB6CRpQ?si=8mRwcIC6KwU3SrR3)
+- **CMake Installation Guide:** [YouTube CMake Setup](https://youtu.be/NXYzA9F1G3o)
 
 #### **2. Run Face Embedding Extraction**
 ```bash
-python face_embedding_extraction.py
+python create_image_embeddings.py
 ```
 
 #### **3. Run Real-Time Face Recognition**
 ```bash
-streamlit run face_recognition.py
+streamlit run main.py
 ```
 
 ---
@@ -102,6 +107,7 @@ project-folder/
 - Ensure `model/` contains the required Dlib models.
 - Store training images in `data/Train_Images/` (one folder per person).
 - The anti-spoofing model should be placed inside `Silent-Face-Anti-Spoofing/`.
+- CMake and Visual Studio are required for the `facial_recognition` library.
 
-**Author:** [Your Name]
+**Author:** [Nikhil Anumalla]
 
