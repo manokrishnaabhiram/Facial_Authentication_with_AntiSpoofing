@@ -109,5 +109,5 @@ project-folder/
 - The anti-spoofing model should be placed inside `Silent-Face-Anti-Spoofing/`.
 - CMake and Visual Studio are required for the `facial_recognition` library.
 
-**Author:** [Nikhil Anumalla]
+**Author:** Nikhil Anumalla
 
