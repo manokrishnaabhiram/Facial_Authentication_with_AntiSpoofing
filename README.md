@@ -7,7 +7,7 @@ This project implements a real-time face recognition system with anti-spoofing d
 ## Overview
 This project consists of two Python scripts for face recognition and anti-spoofing using Dlib and Streamlit.
 
-### **1. Face Embedding Extraction **
+### **1. Face Embedding Extraction (1st Code)**
 This script extracts 128-dimensional face embeddings from images and saves them as a pickle file for later use in face recognition.
 
 #### **Dependencies**
@@ -31,7 +31,7 @@ This script extracts 128-dimensional face embeddings from images and saves them 
 
 ---
 
-### **2. Real-Time Face Recognition with Anti-Spoofing **
+### **2. Real-Time Face Recognition with Anti-Spoofing (2nd Code)**
 This script loads the stored embeddings and performs real-time face recognition while checking for spoofing attacks using an anti-spoofing model.
 
 #### **Dependencies**
@@ -74,12 +74,18 @@ pip install opencv-python dlib numpy imutils pickle-mixin faiss-cpu streamlit cm
 - **Visual Studio (Required for Dlib setup):** [YouTube Installation Guide](https://youtu.be/oTv7HB6CRpQ?si=8mRwcIC6KwU3SrR3)
 - **CMake Installation Guide:** [YouTube CMake Setup](https://youtu.be/8_X5Iq9niDE?si=Tytq4FnzvnA_WDO7)
 
-#### **2. Run Face Embedding Extraction**
+#### **2. Download Required Models**
+- **Face Recognition Model:** [dlib_face_recognition_resnet_model_v1.dat](https://github.com/ageitgey/face_recognition_models/blob/master/face_recognition_models/models/dlib_face_recognition_resnet_model_v1.dat)
+- **Landmark Detector Model:** [shape_predictor_68_face_landmarks.dat.bz2](https://github.com/davisking/dlib-models/blob/master/shape_predictor_68_face_landmarks.dat.bz2/)
+
+Extract the `shape_predictor_68_face_landmarks.dat.bz2` file and place both models inside the `model/` directory.
+
+#### **3. Run Face Embedding Extraction**
 ```bash
 python create_image_embeddings.py
 ```
 
-#### **3. Run Real-Time Face Recognition**
+#### **4. Run Real-Time Face Recognition**
 ```bash
 streamlit run main.py
 ```
@@ -109,5 +115,5 @@ project-folder/
 - The anti-spoofing model should be placed inside `Silent-Face-Anti-Spoofing/`.
 - CMake and Visual Studio are required for the `facial_recognition` library.
 
-**Author:** Nikhil Anumalla
+**Author:** [Nikhil Anumalla]
 
