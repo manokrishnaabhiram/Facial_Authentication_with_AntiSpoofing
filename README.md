@@ -7,7 +7,7 @@ This project implements a real-time face recognition system with anti-spoofing d
 ## Overview
 This project consists of two Python scripts for face recognition and anti-spoofing using Dlib and Streamlit.
 
-### **1. Face Embedding Extraction (1st Code)**
+### **1. Face Embedding Extraction **
 This script extracts 128-dimensional face embeddings from images and saves them as a pickle file for later use in face recognition.
 
 #### **Dependencies**
@@ -31,7 +31,7 @@ This script extracts 128-dimensional face embeddings from images and saves them 
 
 ---
 
-### **2. Real-Time Face Recognition with Anti-Spoofing (2nd Code)**
+### **2. Real-Time Face Recognition with Anti-Spoofing **
 This script loads the stored embeddings and performs real-time face recognition while checking for spoofing attacks using an anti-spoofing model.
 
 #### **Dependencies**
