@@ -80,12 +80,18 @@ pip install opencv-python dlib numpy imutils pickle-mixin faiss-cpu streamlit cm
 
 Extract the `shape_predictor_68_face_landmarks.dat.bz2` file and place both models inside the `model/` directory.
 
-#### **3. Run Face Embedding Extraction**
+#### **3. Create Required Folders**
+Before executing the scripts, ensure that the following folders exist:
+```bash
+mkdir model embedding_file
+```
+
+#### **4. Run Face Embedding Extraction**
 ```bash
 python create_image_embeddings.py
 ```
 
-#### **4. Run Real-Time Face Recognition**
+#### **5. Run Real-Time Face Recognition**
 ```bash
 streamlit run main.py
 ```
@@ -114,6 +120,6 @@ project-folder/
 - Store training images in `data/Train_Images/` (one folder per person).
 - The anti-spoofing model should be placed inside `Silent-Face-Anti-Spoofing/`.
 - CMake and Visual Studio are required for the `facial_recognition` library.
+- **Ensure `model/` and `embedding_file/` directories exist before execution.**
 
 **Author:** [Nikhil Anumalla]
-
