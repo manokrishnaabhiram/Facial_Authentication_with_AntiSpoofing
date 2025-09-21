@@ -1,78 +1,100 @@
 import streamlit as st
-import dlib
 import cv2
 import numpy as np
-import pickle
-import faiss
 import sys
 import os
 import time
 import threading
 
-sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), "Silent-Face-Anti-Spoofing"))
-from test import test
-
-# Fix OpenMP error
+# Fix OpenMP error for some torch/omp combos
 os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 
-# Load models
-detector = dlib.get_frontal_face_detector()
-shape_predictor = dlib.shape_predictor("model/shape_predictor_68_face_landmarks.dat")
-face_rec_model = dlib.face_recognition_model_v1("model/dlib_face_recognition_resnet_model_v1.dat")
+ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
+ANTI_SPOOF_DIR = os.path.join(ROOT_DIR, "Silent-Face-Anti-Spoofing")
+RESOURCES_DIR = os.path.join(ANTI_SPOOF_DIR, "resources")
+ANTI_SPOOF_MODELS_DIR = os.path.join(RESOURCES_DIR, "anti_spoof_models")
+TRAIN_IMAGES_DIR = os.path.join(ROOT_DIR, "data", "Train_Images")
 
-# Load stored embeddings
-with open("embedding_file/face_embeddings.pkl", "rb") as f:
-    stored_embeddings = pickle.load(f)
-
-# Convert embeddings to FAISS index
-person_names = [name.rsplit('.', 1)[0] for name in stored_embeddings.keys()]
-embedding_matrix = np.array(list(stored_embeddings.values()), dtype=np.float32)
-
-d = 128  # Embedding dimension
-index = faiss.IndexFlatL2(d)
-index.add(embedding_matrix)
-
-# Strict match threshold
-STRICT_MATCH_THRESHOLD = 0.45
+# Add Anti-Spoofing repo to path and import test and Detection
+sys.path.append(ANTI_SPOOF_DIR)
+from test import test  # noqa: E402
+from src.anti_spoof_predict import Detection  # noqa: E402
 
 
-def get_face_embedding(frame):
-    """Extracts a 128D face embedding from a webcam frame using dlib."""
-    rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-    faces = detector(rgb_frame)
-    if len(faces) == 0:
-        return None, None
-
-    shape = shape_predictor(rgb_frame, faces[0])
-    face_descriptor = face_rec_model.compute_face_descriptor(rgb_frame, shape)
-    return np.array(face_descriptor, dtype=np.float32), faces[0]
+def ensure_cv2_face():
+    if not hasattr(cv2, 'face'):
+        st.error("OpenCV 'face' module not found. Please install opencv-contrib-python.")
+        st.stop()
 
 
-def process_frame(frame):
-    """Process frame in a separate thread to improve performance."""
-    label = test(
-        image=frame,
-        model_dir='C:\\Users\\Nikhil\\PycharmProjects\\Ideathon\\Facial_rec5\\Silent-Face-Anti-Spoofing\\resources\\anti_spoof_models',
-        device_id=0
-    )
+def load_and_train_recognizer():
+    """Train an LBPH face recognizer from TRAIN_IMAGES_DIR using Detection bbox."""
+    ensure_cv2_face()
+    recognizer = cv2.face.LBPHFaceRecognizer_create()
+    images = []
+    labels = []
+    label_names = []
+    label_map = {}
+    detector = Detection()
 
-    if label == 1:
-        embedding, face_rect = get_face_embedding(frame)
+    if not os.path.isdir(TRAIN_IMAGES_DIR):
+        st.warning("Training images folder not found. Face recognition will default to Unknown.")
+        return recognizer, label_names
 
-        if embedding is not None:
-            embedding = embedding.reshape(1, -1)
-            distances, indices = index.search(embedding, 1)
+    current_label = 0
+    for person in sorted(os.listdir(TRAIN_IMAGES_DIR)):
+        person_path = os.path.join(TRAIN_IMAGES_DIR, person)
+        if not os.path.isdir(person_path):
+            continue
+        label_map[person] = current_label
+        label_names.append(person)
+        for image_name in os.listdir(person_path):
+            image_path = os.path.join(person_path, image_name)
+            img = cv2.imread(image_path)
+            if img is None:
+                continue
+            try:
+                x, y, w, h = detector.get_bbox(img)
+                face = img[max(0,y):y+h, max(0,x):x+w]
+            except Exception:
+                # Fallback: use full image
+                face = img
+            gray = cv2.cvtColor(face, cv2.COLOR_BGR2GRAY)
+            gray = cv2.resize(gray, (200, 200))
+            images.append(gray)
+            labels.append(current_label)
+        current_label += 1
 
-            if distances[0][0] < STRICT_MATCH_THRESHOLD:
-                return person_names[indices[0][0]], (0, 255, 0)  # Green for genuine users
-            else:
-                return "Unknown", (0, 0, 255)  # Red for unknown users
-    return "Spoofer", (0, 0, 255)  # Red for spoofers
+    if images and labels:
+        recognizer.train(images, np.array(labels))
+    else:
+        st.warning("No training images found; recognition may always be Unknown.")
+    return recognizer, label_names
+
+
+def recognize_face_lbph(frame, recognizer, label_names, detector: Detection, conf_threshold: float = 60.0):
+    try:
+        x, y, w, h = detector.get_bbox(frame)
+        face = frame[max(0,y):y+h, max(0,x):x+w]
+        gray = cv2.cvtColor(face, cv2.COLOR_BGR2GRAY)
+        gray = cv2.resize(gray, (200, 200))
+        if len(label_names) == 0:
+            return "Unknown", (0, 0, 255)
+        label_id, confidence = recognizer.predict(gray)
+        if confidence <= conf_threshold and 0 <= label_id < len(label_names):
+            return label_names[label_id], (0, 255, 0)
+    except Exception:
+        pass
+    return "Unknown", (0, 0, 255)
 
 
 # Streamlit UI
 st.title("Real-Time Face Recognition")
 st.write("Turn on your webcam and authenticate yourself.")
+
+# Train recognizer from dataset
+recognizer, person_names = load_and_train_recognizer()
+detector_for_bbox = Detection()
 
 run = st.button("Start Webcam", use_container_width=True)
 if run:
@@ -82,6 +104,7 @@ if run:
     frame_placeholder = st.empty()
     authenticated_user = None
     last_processed_frame_time = time.time()
+    color = (0, 255, 0)
 
     while cap.isOpened():
         ret, frame = cap.read()
@@ -91,33 +114,33 @@ if run:
 
         frame = cv2.resize(frame, (640, 480))  # Resize for better performance
 
-        # Process only every 3rd frame to optimize performance
+        # Process only every ~0.1s to optimize performance
         if time.time() - last_processed_frame_time > 0.1:
             last_processed_frame_time = time.time()
-            result = process_frame(frame)
-
-            if result:
-                best_match, color = result
-
-                if best_match != "Unknown" and best_match != "Spoofer":
+            # Anti-spoofing check first
+            spoof_label = test(image=frame, model_dir=ANTI_SPOOF_MODELS_DIR, device_id=0)
+            if spoof_label == 1:
+                best_match, color = recognize_face_lbph(frame, recognizer, person_names, detector_for_bbox)
+                if best_match not in ("Unknown", "Spoofer"):
                     authenticated_user = best_match
                     st.success(f"✅ User Authenticated: {authenticated_user}")
-                    frame_placeholder.empty()  # Clear the last frame
-                    time.sleep(2)  # Short delay before closing camera
+                    frame_placeholder.empty()
+                    time.sleep(2)
                     break
             else:
-                color = (0, 0, 255)
+                best_match, color = ("Spoofer", (0, 0, 255))
+            
 
         # Draw bounding box
-        faces = detector(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
-        for face in faces:
-            x, y, w, h = face.left(), face.top(), face.width(), face.height()
+        try:
+            x, y, w, h = detector_for_bbox.get_bbox(frame)
             cv2.rectangle(frame, (x, y), (x + w, y + h), color, 2)
             cv2.putText(frame, "Spoofer" if color == (0, 0, 255) else "Genuine",
                         (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.6, color, 2)
+        except Exception:
+            pass
 
-        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        frame_placeholder.image(frame, channels="RGB")
+        frame_placeholder.image(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB), channels="RGB")
 
     cap.release()
 
